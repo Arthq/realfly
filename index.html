@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<script src='/js/three.min.js'></script>
+<script src='/js/threex.planets.js'></script>
+<script src='/js/OrbitControls.js'></script>
+<script src='/js/threex.atmospherematerial.js'></script>
+<!-- include for threex.glowdatgui -->
+<script src='/js/dat.gui.min.js'></script>
+<script src="/js/threex.atmospheredatgui.js"></script>
+<script src="/js/OBJLoader.js"></script>
+<script src="js/socket.io.js"></script>
+
+<body style='margin:0px;padding:0px;background:black;CURSOR: none '>
+	<script>
+		var name = new Date().getTime()
+		var socket = io.connect("http://112.74.92.230:3000")
+		var cameraNode = null
+		var planeNode = null
+		var renderer = new THREE.WebGLRenderer({
+			antialias: true
+		})
+		renderer.setSize(window.innerWidth, window.innerHeight)
+		document.body.appendChild(renderer.domElement)
+
+		var onRenderFcts = []
+		var scene = new THREE.Scene()
+		var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000)
+		camera.position.z = 15
+
+		var front = false
+		var back = false
+		var left = false
+		var right = false
+		var space = false
+
+		var shift = false
+		var doubleing = []
+
+
+		var controls = new THREE.OrbitControls(camera, renderer.domElement)
+		var amlight = new THREE.AmbientLight(0x444444)
+		scene.add(amlight)
+		var sunLight = new THREE.PointLight(0xffffff)
+		scene.add(sunLight)
+
+		var starSphere = THREEx.Planets.createStarfield()
+		scene.add(starSphere)
+
+		var containerSun = new THREE.Object3D()
+		scene.add(containerSun)
+
+		var sunMesh = THREEx.Planets.createSun()
+		sunMesh.scale.multiplyScalar(10)
+		containerSun.add(sunMesh)
+
+		var geometry = new THREE.SphereGeometry(0.5, 32, 32)
+		var material = THREEx.createAtmosphereMaterial()
+		material.uniforms.glowColor.value.set(0xff0000)
+		material.uniforms.coeficient.value = 0.8
+		material.uniforms.power.value = 2.0
+		var mesh = new THREE.Mesh(geometry, material)
+		mesh.scale.multiplyScalar(10.21)
+		containerSun.add(mesh)
+
+		var geometry = new THREE.SphereGeometry(0.5, 32, 32)
+		var material = THREEx.createAtmosphereMaterial()
+		material.side = THREE.BackSide
+		material.uniforms.glowColor.value.set(0xff0000)
+		material.uniforms.coeficient.value = 0.5
+		material.uniforms.power.value = 4.0
+		var mesh = new THREE.Mesh(geometry, material)
+		mesh.scale.multiplyScalar(11.85)
+		containerSun.add(mesh)
+
+		var earthW = 0.001
+		var sunRadius = 5
+
+		//水星
+		var distanceOfMercuryAndSun = 5.8 + sunRadius
+		var mercuryMesh = THREEx.Planets.createMercury()
+		mercuryMesh.position.set(sunMesh.position.x + distanceOfMercuryAndSun, 0, sunMesh.position.z + distanceOfMercuryAndSun)
+		mercuryMesh.scale.multiplyScalar(0.4) //0.05
+		scene.add(mercuryMesh)
+		var mercuryW = earthW * 5
+		var mercuryAngle = [Math.random()]
+
+		//金星
+		var distanceOfVenusAndSun = 10.8 + sunRadius
+		var venusMesh = THREEx.Planets.createVenus()
+		venusMesh.position.set(sunMesh.position.x + distanceOfVenusAndSun, 0, sunMesh.position.z + distanceOfVenusAndSun)
+		venusMesh.scale.multiplyScalar(0.8)
+		scene.add(venusMesh)
+		var venusW = earthW * 1.5
+		var venusAngle = [Math.random()]
+
+		//地球
+		var distanceOfEarthAndSun = 14.9 + sunRadius
+		var earthMesh = THREEx.Planets.createEarth()
+		earthMesh.position.set(sunMesh.position.x + distanceOfEarthAndSun, 0, sunMesh.position.z + distanceOfEarthAndSun)
+		scene.add(earthMesh)
+		var earthAngle = [Math.random()]
+
+		//月球
+		var distanceOfMoonAndEarth = 0.65
+		var moonMesh = THREEx.Planets.createMoon()
+		moonMesh.position.set(earthMesh.position.x + distanceOfMoonAndEarth, 0, earthMesh.position.z + distanceOfMoonAndEarth)
+		moonMesh.scale.multiplyScalar(0.1)
+		scene.add(moonMesh)
+		var moonW = earthW * 12
+		var moonAngle = [Math.random()]
+
+		//火星
+		var distanceOfMarsAndSun = 22.8 / 1.4 + sunRadius
+		var marsMesh = THREEx.Planets.createMars()
+		marsMesh.position.set(sunMesh.position.x + distanceOfMarsAndSun, 0, sunMesh.position.z + distanceOfMarsAndSun)
+		marsMesh.scale.multiplyScalar(0.3) //0.15
+		scene.add(marsMesh)
+		var marsW = earthW / 1.9
+		var marsAngle = [Math.random()]
+
+		//木星
+		var distanceOfJupiterAndSun = 77.9 / 3.3 + sunRadius
+		var jupiterMesh = THREEx.Planets.createJupiter()
+		jupiterMesh.position.set(sunMesh.position.x + distanceOfJupiterAndSun, 0, sunMesh.position.z + distanceOfJupiterAndSun)
+		jupiterMesh.scale.multiplyScalar(5) //1313
+		scene.add(jupiterMesh)
+		var jupiterW = earthW / 11.8
+		var jupiterAngle = [Math.random()]
+
+		//土星
+		var distanceOfSaturnAndSun = 143.4 / 4.8 + sunRadius
+		var saturnMesh = THREEx.Planets.createSaturn()
+		saturnMesh.position.set(sunMesh.position.x + distanceOfSaturnAndSun, 0, sunMesh.position.z + distanceOfSaturnAndSun)
+		saturnMesh.scale.multiplyScalar(3) //745
+		var ring = THREEx.Planets.createSaturnRing()
+		saturnMesh.add(ring)
+		scene.add(saturnMesh)
+		var saturnW = earthW / 29.5
+		var saturnAngle = [Math.random()]
+
+		//天王星
+		var distanceOfUranusAndSun = 287.2 / 8.2 + sunRadius
+		var uranusMesh = THREEx.Planets.createUranus()
+		uranusMesh.position.set(sunMesh.position.x + distanceOfUranusAndSun, 0, sunMesh.position.z + distanceOfUranusAndSun)
+		uranusMesh.scale.multiplyScalar(1.5) //65
+		var ring = THREEx.Planets.createUranusRing()
+		uranusMesh.add(ring)
+		scene.add(uranusMesh)
+		var uranumW = earthW / 84
+		var uranusAngle = [Math.random()]
+
+		//海王星
+		var distanceOfNeptuneAndSun = 449.5 / 11.2 + sunRadius
+		var neptuneMesh = THREEx.Planets.createNeptune()
+		neptuneMesh.position.set(sunMesh.position.x + distanceOfNeptuneAndSun, 0, sunMesh.position.z + distanceOfNeptuneAndSun)
+		neptuneMesh.scale.multiplyScalar(1.4) //57
+		scene.add(neptuneMesh)
+		var neptuneW = earthW / 164.8
+		var neptuneAngle = [Math.random()]
+
+		var fakePlane = null
+		var loader = new THREE.OBJLoader()
+		loader.load("GlobalHawkOBJ.obj", function (obj) {
+			obj.traverse(function (child) {
+				if (child instanceof THREE.Mesh) {
+					child.material = new THREE.MeshLambertMaterial({
+						map: THREE.ImageUtils.loadTexture('/images/jupitermap.jpg'),
+						emissive: 0x111111
+					})
+				}
+			})
+			fakePlane = obj
+			fakePlane.rotation.y = Math.PI
+			fakePlane.scale.multiplyScalar(0.02)
+		})
+		var plane = null;
+		var fakePlanes = {}
+		loader.load("GlobalHawkOBJ.obj", function (obj) {
+				obj.traverse(function (child) {
+					if (child instanceof THREE.Mesh) {
+						child.material = new THREE.MeshLambertMaterial({
+							map: THREE.ImageUtils.loadTexture('/images/earthmap1k.jpg'),
+							emissive: 0x111111
+						})
+					}
+				})
+				plane = obj
+				plane.position.set(0, 0, 14)
+				plane.rotation.y = Math.PI
+				plane.scale.multiplyScalar(0.001)
+				plane.maxV = 0.1
+				plane.moveV = 0.08
+				plane.upV = 0.0
+				plane.leftV = 0.0
+				plane.maxUpV = 0.1
+				plane.turnV = 0.0
+				plane.turnRLV = 0.0
+				plane.maxTurnV = 0.01
+				plane.maxTurnRLV = 0.02
+				plane.aa = 0.004
+				plane.ta = 0.0004
+				plane.ua = 0.004
+				plane.v = new THREE.Vector3(0, 0, -1) // must equal 1
+				plane.n = new THREE.Vector3(1, 0, 0)
+				plane.up = new THREE.Vector3(0, 1, 0)
+				plane.fire = false
+				plane.fireV = 0.2
+				plane.fires = []
+
+				plane.angle = 0
+				scene.add(plane)
+				camera.position.set(0, 0.15, 1)
+				cameraNode = new THREE.Object3D()
+				cameraWrap = new THREE.Object3D()
+				cameraWrap.add(camera)
+				cameraNode.add(cameraWrap)
+				scene.add(cameraNode)
+			})
+			//NET
+		socket.on('connect', function () {
+			socket.on('somebodyfresh', function (data) {
+				console.log('fresh')
+				if (fakePlanes[data.name] == undefined) {
+					var tmpPlane = fakePlane.clone()
+					scene.add(tmpPlane)
+					console.log('add')
+					fakePlanes[data.name] = tmpPlane
+				}
+				fakePlanes[data.name].position.set(data.position.x, data.position.y, data.position.z)
+				//卧槽这_
+				fakePlanes[data.name].rotation.set(data.rotation._x, data.rotation._y, data.rotation._z)
+			})
+			socket.on('somebodyover', function (data) {
+				if (fakePlanes[data.name] != undefined) {
+					scene.remove(fakePlanes[data.name])
+					fakePlanes[data.name] = undefined
+				}
+			})
+		})
+		document.onkeydown = function (event) {
+			var e = event || window.event || arguments.callee.caller.arguments[0]
+			if (e) {
+				switch (e.keyCode) {
+				case 87: //w
+					front = true
+					break
+				case 65: //a
+					left = true
+					break
+				case 83: //s
+					back = true
+					break
+				case 68: //d
+					right = true
+					break
+				case 16:
+					shift = true
+					break
+				case 32:
+					space = true
+					break
+				}
+			}
+		}
+		document.onkeyup = function (event) {
+				var e = event || window.event || arguments.callee.caller.arguments[0]
+				if (e) {
+					switch (e.keyCode) {
+					case 87: //w
+						front = false
+						break
+					case 65: //a
+						left = false
+						break
+					case 83: //s
+						back = false
+						break
+					case 68: //d
+						right = false
+						break
+					case 16:
+						shift = false
+						break
+					case 32:
+						space = false
+						break
+					}
+				}
+			}
+			//		document.onmousedown = function (event) {
+			//			plane.fire = true
+			//		}
+			//		document.onmouseup = function (event) {
+			//			plane.fire = false
+			//		}
+		var t = 50
+		var lasttime = 0
+		var fireGeometry = new THREE.SphereGeometry(0.01, 4, 4)
+		var fireMaterial = new THREE.MeshPhongMaterial({
+			color: 0xff0000,
+		})
+		var sampleFire = new THREE.Mesh(fireGeometry, fireMaterial)
+		var containerFire = new THREE.Object3D()
+		containerFire.add(sampleFire)
+
+		var fgeometry = new THREE.SphereGeometry(0.01, 4, 4)
+		var fmaterial = THREEx.createAtmosphereMaterial()
+		fmaterial.uniforms.glowColor.value.set(0xff0000)
+		fmaterial.uniforms.coeficient.value = 0.8
+		fmaterial.uniforms.power.value = 2.0
+		var fmesh = new THREE.Mesh(geometry, material)
+		fmesh.scale.multiplyScalar(0.021)
+		containerFire.add(fmesh)
+
+		var fgeometry = new THREE.SphereGeometry(0.01, 32, 32)
+		var fmaterial = THREEx.createAtmosphereMaterial()
+		fmaterial.side = THREE.BackSide
+		fmaterial.uniforms.glowColor.value.set(0xffff00)
+		fmaterial.uniforms.coeficient.value = 0.5
+		fmaterial.uniforms.power.value = 4.0
+		var fmesh = new THREE.Mesh(geometry, material)
+		fmesh.scale.multiplyScalar(0.035)
+		containerFire.add(fmesh)
+
+		requestAnimationFrame(function animate(nowtime) {
+			requestAnimationFrame(animate)
+			if (plane != null) {
+				//双击优先级大于 wasd 屏蔽这些键导致的上下左右转动，包括惯性效果
+				//双击优先级 谁先谁优先 如果有两个同时（几乎不可能）按上左下右的顺序
+
+				if (front) {
+					//上升引擎会降低飞行速度
+					if (shift) {
+						if (plane.upV < plane.maxUpV) {
+							plane.upV += plane.ua * 2
+						}
+					} else {
+						//rotateOnAxis 是以本物体新建一个坐标系，与绝对坐标无关，所以v和n不需要改变，v和n是新坐标系中的向量（无论新坐标系有没有转动）
+						//转动的时候新坐标系会转动，所以camera的相对位置不需要改变
+						if (plane.turnV < plane.maxTurnV) {
+							plane.turnV += plane.ta * 2
+						}
+					}
+					if (plane.moveV > 0.0) {
+						plane.moveV -= plane.aa
+					}
+				}
+				if (back) {
+					if (shift) {
+						if (plane.upV > -plane.maxUpV) {
+							plane.upV -= plane.ua * 2
+						}
+					} else {
+						if (plane.turnV > -plane.maxTurnV) {
+							plane.turnV -= plane.ta * 2
+						}
+					}
+					if (plane.moveV > 0.0) {
+						plane.moveV -= plane.aa
+					}
+				}
+
+				if (!((front || back) && !shift)) {
+					//变成0要注意
+					if (plane.turnV > 0) {
+						plane.turnV -= Math.min(plane.ta, plane.turnV)
+					}
+					if (plane.turnV < 0) {
+						plane.turnV += Math.min(plane.ta, -plane.turnV)
+					}
+				}
+
+				if (!((front || back) && shift)) {
+					if (plane.upV > 0) {
+						plane.upV -= Math.min(plane.ua, plane.upV)
+					}
+					if (plane.upV < 0) {
+						plane.upV += Math.min(plane.ua, -plane.upV)
+					}
+				}
+				if (left) {
+					if (shift) {
+						if (Math.abs(plane.angle - Math.PI / 2) < 0.05) {
+							plane.turnRLV = 0
+							plane.leftV = plane.maxUpV
+						} else {
+							plane.leftV = 0
+							if (plane.angle < Math.PI / 2 || plane.angle > Math.PI / 2 * 3) {
+								plane.turnRLV = plane.maxTurnRLV * 1.5
+							} else {
+								plane.turnRLV = -plane.maxTurnRLV * 1.5
+							}
+						}
+					} else {
+						if (plane.turnRLV < plane.maxTurnRLV) {
+							plane.turnRLV += plane.ta * 2
+						}
+					}
+				}
+
+				if (right) {
+					if (shift) {
+						if (Math.abs(plane.angle - Math.PI / 2 * 3) < 0.05) {
+							plane.turnRLV = 0
+							plane.leftV = plane.maxUpV
+						} else {
+							plane.leftV = 0
+							if (plane.angle < Math.PI / 2 || plane.angle > Math.PI / 2 * 3) {
+								plane.turnRLV = -plane.maxTurnRLV * 1.5
+							} else {
+								plane.turnRLV = plane.maxTurnRLV * 1.5
+							}
+						}
+					} else {
+						if (plane.turnRLV > -plane.maxTurnRLV) {
+							plane.turnRLV -= plane.ta * 2
+						}
+						//					plane.rotateOnAxis(plane.v, -plane.turnRLV)
+						//						//相机改变，整个环境都变了，不需要改变机翼向量了
+						//					cameraNode.rotateOnAxis(plane.v, plane.turnRLV)
+					}
+
+				}
+				if (!(left || right)) {
+					if (plane.turnRLV > 0) {
+						plane.turnRLV -= Math.min(plane.ta, plane.turnRLV)
+					}
+					if (plane.turnRLV < 0) {
+						plane.turnRLV += Math.min(plane.ta, -plane.turnRLV)
+					}
+					plane.leftV = 0
+				}
+				//				if (up || down) {
+				//					if (up) {
+				//						if (plane.moveV < plane.maxV) {
+				//							plane.moveV += 0.0015
+				//						}
+				//						//				camera.position.y += cameraMoveV
+				//						//				lookPosition.y += cameraMoveV
+				//					}
+				//					if (down) {
+				//						if (plane.moveV > plane.minV) {
+				//							plane.moveV -= 0.0015
+				//						}
+				//						//				camera.position.y -= cameraMoveV
+				//						//				lookPosition.y -= cameraMoveV
+				//					}
+				//				} 
+				if (space) {
+					if (shift) {
+						if (Math.abs(plane.angle) < 0.05) {
+							plane.turnRLV = 0
+						} else {
+							if (plane.angle < Math.PI) {
+								plane.turnRLV = -plane.maxTurnRLV
+							} else {
+								plane.turnRLV = plane.maxTurnRLV
+							}
+						}
+					} else {
+						if (plane.moveV > 0) {
+							plane.moveV -= plane.aa / 2
+						}
+						if (plane.moveV < 0) {
+							plane.moveV = 0
+						}
+					}
+				}
+				if (!(front || back || space)) {
+					if (plane.moveV < plane.maxV) {
+						plane.moveV += plane.aa
+					}
+				}
+				plane.rotateOnAxis(plane.n, -plane.turnV)
+				cameraNode.rotateOnAxis(plane.n, plane.turnV)
+				containerFire.rotateOnAxis(plane.n, plane.turnV)
+
+				plane.rotateOnAxis(plane.v, plane.turnRLV)
+				plane.angle = (plane.angle + plane.turnRLV + Math.PI * 2) % (Math.PI * 2)
+				containerFire.rotateOnAxis(plane.v, -plane.turnRLV)
+				cameraNode.rotateOnAxis(plane.v, -plane.turnRLV)
+				cameraWrap.rotateOnAxis(plane.v, plane.turnRLV)
+
+				if (nowtime - lasttime > 500) {
+					lasttime = nowtime
+					if (plane.fire) {
+						var fire = containerFire.clone()
+						containerFire.explosing = false
+						fire.removeF = false
+							//						fire.scaleV = 1
+						scene.add(fire)
+						plane.fires.push([fire, nowtime])
+					}
+				}
+				for (var i in plane.fires) {
+					if (plane.fires[i][0].removeF) {
+						scene.remove(plane.fires[i][0])
+						plane.fires.shift()
+					}
+					if (nowtime - plane.fires[i][1] > 5 * 1000) {
+						plane.fires[i][0].removeF = true
+					} else {
+						plane.fires[i][0].translateOnAxis(plane.v, plane.fireV)
+					}
+				}
+
+				plane.translateOnAxis(plane.v, -plane.moveV)
+				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
+				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
+
+				plane.translateOnAxis(plane.up, plane.leftV)
+				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
+				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
+
+				plane.translateOnAxis(plane.up, plane.upV)
+				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
+				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
+
+				socket.emit('somebodyfresh', {
+					name: name,
+					position: plane.position,
+					rotation: plane.rotation
+				})
+			}
+			revolutionAndRotation(moonMesh, earthMesh, moonW, moonAngle, distanceOfMoonAndEarth)
+			revolutionAndRotation(earthMesh, sunMesh, earthW, earthAngle, distanceOfEarthAndSun)
+			revolutionAndRotation(mercuryMesh, sunMesh, mercuryW, mercuryAngle, distanceOfMercuryAndSun)
+			revolutionAndRotation(venusMesh, sunMesh, venusW, venusAngle, distanceOfVenusAndSun)
+			revolutionAndRotation(marsMesh, sunMesh, marsW, marsAngle, distanceOfMarsAndSun)
+			revolutionAndRotation(jupiterMesh, sunMesh, jupiterW, jupiterAngle, distanceOfJupiterAndSun)
+			revolutionAndRotation(saturnMesh, sunMesh, saturnW, saturnAngle, distanceOfSaturnAndSun)
+			revolutionAndRotation(uranusMesh, sunMesh, uranumW, uranusAngle, distanceOfUranusAndSun)
+			revolutionAndRotation(neptuneMesh, sunMesh, neptuneW, neptuneAngle, distanceOfNeptuneAndSun)
+			revolutionAndRotation(sunMesh, sunMesh, -0.0001, [0], 0)
+			controls.update()
+			renderer.render(scene, camera)
+		})
+
+		function revolutionAndRotation(mesh, target, w, angle, distance) {
+			angle[0] = (angle[0] + w) % (Math.PI * 2)
+			mesh.position.set(
+				target.position.x + distance * Math.cos(angle[0]),
+				0,
+				target.position.z + distance * Math.sin(angle[0])
+			)
+			mesh.rotation.y -= w * 5
+		}
+	</script>
+</body>

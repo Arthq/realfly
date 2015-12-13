@@ -1,0 +1,24 @@
+{
+  "name": "realfly",
+  "version": "1.0.0",
+  "description": "a networking game about aircraft in cosmic space",
+  "main": "server.js",
+  "dependencies": {
+    "socket.io": "^1.3.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node server.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arthq/realfly.git"
+  },
+  "author": "Chenleejr",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arthq/realfly/issues"
+  },
+  "homepage": "https://github.com/arthq/realfly#readme"
+}
