@@ -3,13 +3,11 @@
 <script src='/js/threex.planets.js'></script>
 <script src='/js/OrbitControls.js'></script>
 <script src='/js/threex.atmospherematerial.js'></script>
-<!-- include for threex.glowdatgui -->
-<script src='/js/dat.gui.min.js'></script>
 <script src="/js/threex.atmospheredatgui.js"></script>
 <script src="/js/OBJLoader.js"></script>
 <script src="js/socket.io.js"></script>
 
-<body style='margin:0px;padding:0px;background:black;CURSOR: none '>
+<body style='margin:0px;overflow:hidden;CURSOR: none '>
 	<script>
 		var name = new Date().getTime()
 		var socket = io.connect("http://112.74.92.230:3000")
@@ -33,7 +31,7 @@
 		var space = false
 
 		var shift = false
-		var doubleing = []
+		var ctrl = false
 
 
 		var controls = new THREE.OrbitControls(camera, renderer.domElement)
@@ -225,9 +223,9 @@
 					console.log('add')
 					fakePlanes[data.name] = tmpPlane
 				}
-				fakePlanes[data.name].position.set(data.position.x, data.position.y, data.position.z)
-				//卧槽这_
-				fakePlanes[data.name].rotation.set(data.rotation._x, data.rotation._y, data.rotation._z)
+				fakePlanes[data.name].position.set(data.positionx, data.positiony, data.positionz)
+					//卧槽这_
+				fakePlanes[data.name].rotation.set(data.rotationx, data.rotationy, data.rotationz)
 			})
 			socket.on('somebodyover', function (data) {
 				if (fakePlanes[data.name] != undefined) {
@@ -258,6 +256,9 @@
 				case 32:
 					space = true
 					break
+				case 17:
+					ctrl = true
+					break
 				}
 			}
 		}
@@ -282,6 +283,9 @@
 						break
 					case 32:
 						space = false
+						break
+					case 17:
+						ctrl = false
 						break
 					}
 				}
@@ -324,9 +328,6 @@
 		requestAnimationFrame(function animate(nowtime) {
 			requestAnimationFrame(animate)
 			if (plane != null) {
-				//双击优先级大于 wasd 屏蔽这些键导致的上下左右转动，包括惯性效果
-				//双击优先级 谁先谁优先 如果有两个同时（几乎不可能）按上左下右的顺序
-
 				if (front) {
 					//上升引擎会降低飞行速度
 					if (shift) {
@@ -470,6 +471,9 @@
 						plane.moveV += plane.aa
 					}
 				}
+				if (ctrl){
+					camera.position.set(0, 0, 1)
+				}
 				plane.rotateOnAxis(plane.n, -plane.turnV)
 				cameraNode.rotateOnAxis(plane.n, plane.turnV)
 				containerFire.rotateOnAxis(plane.n, plane.turnV)
@@ -504,21 +508,23 @@
 				}
 
 				plane.translateOnAxis(plane.v, -plane.moveV)
-				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
-				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
 
 				plane.translateOnAxis(plane.up, plane.leftV)
-				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
-				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
 
 				plane.translateOnAxis(plane.up, plane.upV)
-				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
-				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
 
+				cameraNode.position.set(plane.position.x, plane.position.y, plane.position.z)
+					//这个方法这个版本three.min.js貌似不行了，而且rotation的需要用_x
+					//				cameraNode.position = new THREE.Vector3(plane.position.x, plane.position.y, plane.position.z)
+				containerFire.position.set(plane.position.x, plane.position.y, plane.position.z)
 				socket.emit('somebodyfresh', {
 					name: name,
-					position: plane.position,
-					rotation: plane.rotation
+					positionx: plane.position.x,
+					positiony: plane.position.y,
+					positionz: plane.position.z,
+					rotationx: plane.rotation.x,
+					rotationy: plane.rotation.y,
+					rotationz: plane.rotation.z
 				})
 			}
 			revolutionAndRotation(moonMesh, earthMesh, moonW, moonAngle, distanceOfMoonAndEarth)

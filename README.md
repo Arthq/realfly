@@ -8,6 +8,8 @@ a networking game about aircraft in cosmic space
 *shift+a*  first rotate to 90 degrees then move up  
 *shift+s*  move down  
 *shift+d*  first rotate to 270 degrees then move up  
+*shift+space*  rotate to horizontal plane  
+*ctrl*  your visual angle will recover
 *space*  slow down(when you press w s shift+w or shift+s you will slow down too)  
 mouse can control your visual angle, first you should press your left mouse  
   
